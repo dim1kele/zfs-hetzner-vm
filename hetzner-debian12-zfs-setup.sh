@@ -547,7 +547,7 @@ echo "======= create zfs pools and datasets =========="
   pools_mirror_option=
   if [[ ${#v_selected_disks[@]} -gt 1 ]]; then
     if dialog --defaultno --yesno "Do you want to use mirror mode for ${v_selected_disks[*]}?" 30 100; then 
-      pools_mirror_option=mirror
+      pools_mirror_option=raidz2
     fi
   fi
 
@@ -755,9 +755,7 @@ echo "======= setting up grub =========="
 chroot_execute "echo 'grub-pc grub-pc/install_devices_empty   boolean true' | debconf-set-selections"
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-legacy"
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-pc"
-for disk in ${v_selected_disks[@]}; do
-  chroot_execute "grub-install --recheck $disk"
-done
+chroot_execute "grub-install ${v_selected_disks[0]}"
 
 chroot_execute "sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g' /etc/default/grub"
 chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"net.ifnames=0\"|' /etc/default/grub"

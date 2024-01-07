@@ -544,12 +544,7 @@ echo "======= create zfs pools and datasets =========="
     bpool_disks_partitions+=("${selected_disk}-part2")
   done
 
-  pools_mirror_option=
-  if [[ ${#v_selected_disks[@]} -gt 1 ]]; then
-    if dialog --defaultno --yesno "Do you want to use mirror mode for ${v_selected_disks[*]}?" 30 100; then 
-      pools_mirror_option=raidz2
-    fi
-  fi
+  pools_mirror_option=raidz2
 
 # shellcheck disable=SC2086
 zpool create \

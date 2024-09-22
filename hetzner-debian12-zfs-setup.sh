@@ -13,6 +13,19 @@ screen -r zfs
 To detach from screen console, hit Ctrl-d then a
 end_header_info
 
+: <<'Credit'
+1. https://github.com/terem42/zfs-hetzner-vm/
+2. https://openzfs.github.io/openzfs-docs/Getting%20Started/Debian/Debian%20Bookworm%20Root%20on%20ZFS.html
+3. https://openzfs.github.io/openzfs-docs/Getting%20Started/Debian/Debian%20Bookworm%20Root%20on%20ZFS.html#step-1-prepare-the-install-environment
+4. https://openzfs.github.io/openzfs-docs/Getting%20Started/Debian/Debian%20Bookworm%20Root%20on%20ZFS.html#rescuing-using-a-live-cd
+
+Does not work for efi partition, at least for my debian in virtualbox!
+Credit
+
+#debian_repo_server=mirrors.163.com
+debian_repo_server=deb.debian.org
+echo "Tips: Change $debian_repo_server to your mirror server like mirrors.163.com"
+
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -37,8 +50,8 @@ v_zfs_experimental=
 v_suitable_disks=()
 
 # Constants
-c_deb_packages_repo=https://deb.debian.org/debian
-c_deb_security_repo=https://deb.debian.org/debian-security
+c_deb_packages_repo=https://$debian_repo_server/debian
+c_deb_security_repo=https://$debian_repo_server/debian-security
 
 c_default_zfs_arc_max_mb=250
 c_default_bpool_tweaks="-o ashift=12 -O compression=lz4"
@@ -494,20 +507,23 @@ for kver in $(find /lib/modules/* -maxdepth 0 -type d | grep -v "$(uname -r)" | 
   apt purge --yes "linux-image-$kver"
 done
 
-#echo "======= installing zfs on rescue system =========="
+echo "======= installing zfs on rescue system =========="
 
-#  echo "zfs-dkms zfs-dkms/note-incompatible-licenses note true" | debconf-set-selections  
+  echo "zfs-dkms zfs-dkms/note-incompatible-licenses note true" | debconf-set-selections  
 #  echo "y" | zfs
 # linux-headers-generic linux-image-generic
-#  apt install --yes software-properties-common dpkg-dev dkms
-#  rm -f "$(which zfs)"
-#  rm -f "$(which zpool)"
-#  echo -e "deb http://deb.debian.org/debian/ testing main contrib non-free\ndeb http://deb.debian.org/debian/ testing main contrib non-free\n" >/etc/apt/sources.list.d/bookworm-testing.list
-#  echo -e "Package: src:zfs-linux\nPin: release n=testing\nPin-Priority: 990\n" > /etc/apt/preferences.d/90_zfs
-#  apt update  
-#  apt install -t testing --yes zfs-dkms zfsutils-linux
-#  rm /etc/apt/sources.list.d/bookworm-testing.list
-#  rm /etc/apt/preferences.d/90_zfs
+  apt install --yes software-properties-common dpkg-dev dkms
+  #rm -f "$(which zfs)"
+  #rm -f "$(which zpool)"
+  echo -e "deb http://$debian_repo_server/debian/ bookworm main contrib non-free-firmware" >/etc/apt/sources.list
+  #echo -e "Package: src:zfs-linux\nPin: release n=bookworm\nPin-Priority: 990\n" > /etc/apt/preferences.d/90_zfs
+  apt update  
+
+  which gsettings && set org.gnome.desktop.media-handling automount false || :
+
+  apt install --yes debootstrap gdisk zfsutils-linux
+  #rm /etc/apt/sources.list.d/bookworm-bookworm.list
+  #rm /etc/apt/preferences.d/90_zfs
   apt update
   export PATH=$PATH:/usr/sbin
   zfs --version
@@ -554,21 +570,14 @@ echo "======= create zfs pools and datasets =========="
 # shellcheck disable=SC2086
 zpool create \
   $v_bpool_tweaks -O canmount=off -O devices=off \
-  -o compatibility=grub2 \
-  -o autotrim=on \
-  -O normalization=formD \
-  -O relatime=on \
-  -O acltype=posixacl -O xattr=sa \
   -o cachefile=/etc/zpool.cache \
+  -o compatibility=grub2 \
   -O mountpoint=/boot -R $c_zfs_mount_dir -f \
   $v_bpool_name $pools_mirror_option "${bpool_disks_partitions[@]}"
 
 # shellcheck disable=SC2086
 echo -n "$v_passphrase" | zpool create \
   $v_rpool_tweaks \
-  -o feature@head_errlog=disabled \
-  -o feature@vdev_zaps_v2=disabled \
-  -o feature@zilsaxattr=disabled \
   -o cachefile=/etc/zpool.cache \
   "${encryption_options[@]}" \
   -O mountpoint=/ -R $c_zfs_mount_dir -f \

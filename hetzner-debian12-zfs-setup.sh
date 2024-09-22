@@ -495,20 +495,20 @@ for kver in $(find /lib/modules/* -maxdepth 0 -type d | grep -v "$(uname -r)" | 
   apt purge --yes "linux-image-$kver"
 done
 
-#echo "======= installing zfs on rescue system =========="
+echo "======= installing zfs on rescue system =========="
 
-#  echo "zfs-dkms zfs-dkms/note-incompatible-licenses note true" | debconf-set-selections  
-#  echo "y" | zfs
+# echo "zfs-dkms zfs-dkms/note-incompatible-licenses note true" | debconf-set-selections  
+# echo "y" | zfs
 # linux-headers-generic linux-image-generic
- # apt install --yes software-properties-common dpkg-dev dkms
-#  rm -f "$(which zfs)"
- # rm -f "$(which zpool)"
- # echo -e "deb http://deb.debian.org/debian/ testing main contrib non-free\ndeb http://deb.debian.org/debian/ testing main contrib non-free\n" >/etc/apt/sources.list.d/bookworm-testing.list
- # echo -e "Package: src:zfs-linux\nPin: release n=testing\nPin-Priority: 990\n" > /etc/apt/preferences.d/90_zfs
- # apt update  
- # apt install -t testing --yes zfs-dkms zfsutils-linux
- # rm /etc/apt/sources.list.d/bookworm-testing.list
-  #rm /etc/apt/preferences.d/90_zfs
+# apt install --yes software-properties-common dpkg-dev dkms
+# rm -f "$(which zfs)"
+# rm -f "$(which zpool)"
+# echo -e "deb http://deb.debian.org/debian/ testing main contrib non-free\ndeb http://deb.debian.org/debian/ testing main contrib non-free\n" >/etc/apt/sources.list.d/bookworm-testing.list
+# echo -e "Package: src:zfs-linux\nPin: release n=testing\nPin-Priority: 990\n" > /etc/apt/preferences.d/90_zfs
+# apt update  
+# apt install -t testing --yes zfs-dkms zfsutils-linux
+# rm /etc/apt/sources.list.d/bookworm-testing.list
+# rm /etc/apt/preferences.d/90_zfs
   apt update
   export PATH=$PATH:/usr/sbin
   zfs --version
@@ -558,23 +558,13 @@ echo "======= create zfs pools and datasets =========="
 
 # shellcheck disable=SC2086
 zpool create \
-  -o cachefile=/etc/zpool.cache \
-  -o ashift=12 -d \
+  $v_bpool_tweaks -O canmount=off -O devices=off \
   -o compatibility=grub2 \
-  -o feature@async_destroy=enabled \
-  -o feature@bookmarks=enabled \
-  -o feature@embedded_data=enabled \
-  -o feature@empty_bpobj=enabled \
-  -o feature@enabled_txg=enabled \
-  -o feature@extensible_dataset=enabled \
-  -o feature@filesystem_limits=enabled \
-  -o feature@hole_birth=enabled \
-  -o feature@large_blocks=enabled \
-  -o feature@lz4_compress=enabled \
-  -o feature@spacemap_histogram=enabled \
-  -o feature@zpool_checkpoint=enabled \
-  -O acltype=posixacl -O canmount=off -O compression=lz4 \
-  -O devices=off -O normalization=formD -O relatime=on -O xattr=sa \
+  -o autotrim=on \
+  -O normalization=formD \
+  -O relatime=on \
+  -O acltype=posixacl -O xattr=sa \
+  -o cachefile=/etc/zpool.cache \
   -O mountpoint=/boot -R $c_zfs_mount_dir -f \
   $v_bpool_name $pools_mirror_option "${bpool_disks_partitions[@]}"
 
